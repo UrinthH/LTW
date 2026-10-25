@@ -318,7 +318,10 @@ const GLubyte* glGetStringi(GLenum name, GLuint index) {
     }
 }
 
-#define GL_VERSION_STRING "%u.%u OpenLTW (Built on: " __DATE__ "/" __TIME__ ")"
+// Shown by the game's debug screen (F3). Each "\xC2\xA7" is Minecraft's formatting
+// character: bold, green, and a final reset so the text after this string is unaffected.
+// The literals are split so that a hex escape never swallows the letter after it.
+#define GL_VERSION_STRING "%u.%u " "\xC2\xA7" "l" "\xC2\xA7" "a" "Performance Mode" "\xC2\xA7" "r"
 
 static char* gl_version;
 
@@ -578,6 +581,7 @@ __attribute((constructor)) void init_noerror() {
     coherent_dynamic_storage = env_istrue_d("LTW_COHERENT_DYNAMIC_STORAGE", true);
     bool version_overriden = extract_gl_version(getenv("MESA_GL_VERSION_OVERRIDE"));
     if(version_overriden) printf("LTW will override exposed OpenGL version to %u.%u\n", gl_major, gl_minor);
+    printf("LTW (URinth build, " __DATE__ " " __TIME__ ")\n");
     if(!noerror) printf("LTW will NOT ignore GL errors. This may break mods, consider yourself warned.\n");
     if(coherent_dynamic_storage) printf("LTW will force dynamic storage buffers to be coherent.\n");
     if(debug) printf("LTW will allow GL_DEBUG_OUTPUT to be enabled. Expect massive logs.\n");
