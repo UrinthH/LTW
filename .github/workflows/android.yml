@@ -18,6 +18,12 @@ jobs:
 
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
+    - name: Test the shader cache
+      run: |
+        gcc -Wall -Wextra -fsanitize=address,undefined -g -I ltw/src/main/tinywrapper \
+          ltw/src/test/native/shader_cache_test.c ltw/src/main/tinywrapper/shader_cache.c \
+          -lpthread -o /tmp/shader_cache_test
+        /tmp/shader_cache_test
     - name: Build with Gradle
       run: ./gradlew :ltw:assembleRelease
     - name: Upload AAR

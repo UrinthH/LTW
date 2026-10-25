@@ -13,6 +13,8 @@
 #include "string_utils.h"
 #include "egl.h"
 #include "proc.h"
+#include "shader_cache.h"
+#include <time.h>
 
 typedef struct {
     GLenum shader_type;
@@ -39,6 +41,7 @@ GLuint glCreateProgram(void) {
 
 void glDeleteProgram(GLuint program) {
     if(!current_context) return;
+    if(current_context->program == program) current_context->program = 0; // see glUseProgram
     es3_functions.glDeleteProgram(program);
     program_info_t *old_programinfo = unordered_map_remove(current_context->program_map, (void*)program);
     if(old_programinfo == NULL) return;
@@ -94,6 +97,7 @@ static void insert_fragout_pos(char* source, int* size, const char* name, GLuint
 
 void glLinkProgram(GLuint program) {
     if(!current_context) return;
+    if(current_context->program == program) current_context->program = 0; // see glUseProgram
     program_info_t* program_info = unordered_map_get(current_context->program_map, (void*)program);
     if(program_info == NULL || program_info->frag_shader == 0) {
         // Don't have any fragment shader to patch the locations in, fall through.
@@ -172,6 +176,13 @@ void glDeleteShader(GLuint shader) {
     free(old_shaderinfo);
 }
 
+/** Milliseconds from a monotonic clock, for measuring how long a translation takes. */
+static double now_ms(void) {
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return (double)ts.tv_sec * 1000.0 + (double)ts.tv_nsec / 1e6;
+}
+
 void glShaderSource(GLuint shader, GLsizei count, const GLchar *const*string, const GLint *length) {
     if(!current_context) return;
     shader_info_t* shader_info = unordered_map_get(current_context->shader_map, (void*)shader);
@@ -181,26 +192,54 @@ void glShaderSource(GLuint shader, GLsizei count, const GLchar *const*string, co
         return;
     }
 
+    // A negative (or missing) length means "this string ends at its NUL", as in the OpenGL spec.
+#define SRC_LEN(x) ((length != NULL && length[x] >= 0) ? (size_t)length[x] : strlen(string[x]))
     size_t target_length = 0;
-#define SRC_LEN(x) length != NULL ? length[x] : strlen(string[x])
     for(GLsizei i = 0; i < count; i++) target_length += SRC_LEN(i);
     GLchar* target_string = malloc((target_length + 1) * sizeof(GLchar));
+    if(target_string == NULL) {
+        printf("LTWShdrWp: out of memory while reading shader %u\n", shader);
+        es3_functions.glShaderSource(shader, count, string, length);
+        return;
+    }
     size_t offset = 0;
     for(GLsizei i = 0; i < count; i++) {
-        memcpy(&target_string[offset], string[i], SRC_LEN(i));
+        size_t part = SRC_LEN(i);
+        memcpy(&target_string[offset], string[i], part);
+        // Every part used to be copied to the start, so a shader given in several pieces
+        // lost all but its last piece.
+        offset += part;
     }
     target_string[target_length] = 0;
-
 #undef SRC_LEN
-    GLchar* new_source = optimize_shader(target_string, shader_info->shader_type, 460, current_context->shader_version);
-    if(shader_info->source != NULL) free((void*)shader_info->source);
+
+    // Translating a shader is slow, and the same shaders come back on every resource reload and
+    // every launch, so remember the results.
+    GLchar* new_source = ltw_shader_cache_lookup(shader_info->shader_type, current_context->shader_version,
+                                                 target_string, target_length);
+    if(new_source == NULL) {
+        // optimize_shader may rewrite its input, so give it a copy and keep the original for the cache key.
+        GLchar* work_copy = malloc(target_length + 1);
+        if(work_copy != NULL) {
+            memcpy(work_copy, target_string, target_length + 1);
+            double started = now_ms();
+            new_source = optimize_shader(work_copy, shader_info->shader_type, 460, current_context->shader_version);
+            ltw_shader_cache_note_translation(now_ms() - started);
+            free(work_copy);
+            if(new_source != NULL) {
+                ltw_shader_cache_store(shader_info->shader_type, current_context->shader_version,
+                                       target_string, target_length, new_source);
+            }
+        }
+    }
+    ltw_shader_cache_report(100);
+
     if(!new_source) {
         printf("LTWShdrWp: failed to convert&optimize shader %u, skipping\n", shader);
         goto end;
-    } else {
-        //printf("\n\n\nShader Result\n%s\n\n\n", new_source);
-        shader_info->source = new_source;
     }
+    if(shader_info->source != NULL) free((void*)shader_info->source);
+    shader_info->source = new_source;
     es3_functions.glShaderSource(shader, 1, &shader_info->source, 0);
     end:
     free(target_string);

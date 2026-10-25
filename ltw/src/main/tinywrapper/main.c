@@ -43,7 +43,7 @@ void glClearDepth(GLdouble depth) {
 void *glMapBuffer(GLenum target, GLenum access) {
     if(!current_context) return NULL;
 
-    GLenum access_range;
+    GLenum access_range = GL_MAP_READ_BIT | GL_MAP_WRITE_BIT; // used if access is not a known value
     GLint length;
 
     switch (target) {
@@ -432,6 +432,11 @@ void glBindBufferRange(GLenum target, GLuint index, GLuint buffer, GLintptr offs
 
 void glUseProgram(GLuint program) {
     if(!current_context) return;
+    // The game selects its program before nearly every draw, mostly the one that is already
+    // selected. Telling the driver again costs time and changes nothing.
+    // current_context->program is cleared whenever the program is relinked or deleted, so a
+    // use that failed earlier (for example before linking) can never make a later one get skipped.
+    if(current_context->program == program) return;
     es3_functions.glUseProgram(program);
     current_context->program = program;
 }
@@ -448,7 +453,8 @@ void glGetIntegerv(GLenum pname, GLint* data) {
         case GL_NUM_EXTENSIONS:
             es3_functions.glGetIntegerv(pname, data);
             (*data) += current_context->nextras;
-            printf("GL_NUM_EXTENSIONS: %i\n", (*data));
+            // (This used to print a line on every call; callers ask for it often enough that the
+            // logging itself showed up as a cost.)
             return;
         case GL_MAX_COLOR_ATTACHMENTS:
             *data = MAX_FBTARGETS;
