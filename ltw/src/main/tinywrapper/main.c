@@ -323,29 +323,29 @@ const GLubyte* glGetStringi(GLenum name, GLuint index) {
 //    glGetIntegerv(GL_MAJOR_VERSION/GL_MINOR_VERSION) and the extension list; LWJGL reads those, so
 //    mods keep seeing what this wrapper can actually do. The number has to stay first because
 //    programs that read the version string expect "major.minor" at the start.
-//  - Each letter of "Performance Mode" gets its own colour code followed by the bold code. The
-//    order matters: in Minecraft a colour code switches bold off, so bold goes after the colour.
+//  - Each letter of "Performance Mode" gets its own colour code. No bold: bold makes the letters
+//    wider and they overlap in the debug screen.
 //  - The final reset keeps the text that follows this string (", MojoLauncher") in its normal style.
 // SECT is Minecraft's formatting character in UTF-8. Every piece is its own string literal so a hex
 // escape can never swallow the letter after it.
 #define SECT "\xC2\xA7"
 #define GL_VERSION_STRING "4.6 " \
-    SECT "c" SECT "l" "P" \
-    SECT "6" SECT "l" "e" \
-    SECT "e" SECT "l" "r" \
-    SECT "a" SECT "l" "f" \
-    SECT "b" SECT "l" "o" \
-    SECT "9" SECT "l" "r" \
-    SECT "d" SECT "l" "m" \
-    SECT "c" SECT "l" "a" \
-    SECT "6" SECT "l" "n" \
-    SECT "e" SECT "l" "c" \
-    SECT "a" SECT "l" "e" \
+    SECT "c" "P" \
+    SECT "6" "e" \
+    SECT "e" "r" \
+    SECT "a" "f" \
+    SECT "b" "o" \
+    SECT "9" "r" \
+    SECT "d" "m" \
+    SECT "c" "a" \
+    SECT "6" "n" \
+    SECT "e" "c" \
+    SECT "a" "e" \
     " " \
-    SECT "b" SECT "l" "M" \
-    SECT "9" SECT "l" "o" \
-    SECT "d" SECT "l" "d" \
-    SECT "c" SECT "l" "e" \
+    SECT "b" "M" \
+    SECT "9" "o" \
+    SECT "d" "d" \
+    SECT "c" "e" \
     SECT "r"
 
 static char* gl_version;
