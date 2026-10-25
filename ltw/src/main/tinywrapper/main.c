@@ -318,10 +318,35 @@ const GLubyte* glGetStringi(GLenum name, GLuint index) {
     }
 }
 
-// Shown by the game's debug screen (F3). Each "\xC2\xA7" is Minecraft's formatting
-// character: bold, green, and a final reset so the text after this string is unaffected.
-// The literals are split so that a hex escape never swallows the letter after it.
-#define GL_VERSION_STRING "%u.%u " "\xC2\xA7" "l" "\xC2\xA7" "a" "Performance Mode" "\xC2\xA7" "r"
+// Shown by the game's debug screen (F3) as the OpenGL version.
+//  - "4.6" is only a label. The capabilities the game really gets are still reported by
+//    glGetIntegerv(GL_MAJOR_VERSION/GL_MINOR_VERSION) and the extension list; LWJGL reads those, so
+//    mods keep seeing what this wrapper can actually do. The number has to stay first because
+//    programs that read the version string expect "major.minor" at the start.
+//  - Each letter of "Performance Mode" gets its own colour code followed by the bold code. The
+//    order matters: in Minecraft a colour code switches bold off, so bold goes after the colour.
+//  - The final reset keeps the text that follows this string (", MojoLauncher") in its normal style.
+// SECT is Minecraft's formatting character in UTF-8. Every piece is its own string literal so a hex
+// escape can never swallow the letter after it.
+#define SECT "\xC2\xA7"
+#define GL_VERSION_STRING "4.6 " \
+    SECT "c" SECT "l" "P" \
+    SECT "6" SECT "l" "e" \
+    SECT "e" SECT "l" "r" \
+    SECT "a" SECT "l" "f" \
+    SECT "b" SECT "l" "o" \
+    SECT "9" SECT "l" "r" \
+    SECT "d" SECT "l" "m" \
+    SECT "c" SECT "l" "a" \
+    SECT "6" SECT "l" "n" \
+    SECT "e" SECT "l" "c" \
+    SECT "a" SECT "l" "e" \
+    " " \
+    SECT "b" SECT "l" "M" \
+    SECT "9" SECT "l" "o" \
+    SECT "d" SECT "l" "d" \
+    SECT "c" SECT "l" "e" \
+    SECT "r"
 
 static char* gl_version;
 
@@ -330,7 +355,7 @@ const GLubyte* glGetString(GLenum name) {
     switch(name) {
         case GL_VERSION:
             if(!gl_version) {
-                asprintf(&gl_version, GL_VERSION_STRING, gl_major, gl_minor);
+                gl_version = strdup(GL_VERSION_STRING);
             }
             return (const GLubyte*)gl_version;
         case GL_SHADING_LANGUAGE_VERSION:
