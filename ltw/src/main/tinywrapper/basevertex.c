@@ -8,6 +8,7 @@
 #include "proc.h"
 #include "egl.h"
 #include "main.h"
+#include "ltw_stats.h"
 
 typedef struct {
     GLuint count;
@@ -51,6 +52,7 @@ static void restore_state(GLuint element_buffer) {
 
 void glDrawElementsBaseVertex(GLenum mode, GLsizei count, GLenum type, const void *indices, GLint basevertex) {
     if(!current_context) return;
+    LTW_STAT(draw_calls, 1);
     if(current_context->drawelementsbasevertex != NULL) {
         current_context->drawelementsbasevertex(mode, count, type, indices, basevertex);
         return;
@@ -90,6 +92,8 @@ void glMultiDrawElementsBaseVertex(GLenum mode,
                                    GLsizei drawcount,
                                    const GLint *basevertex) {
     if(!current_context) return;
+    LTW_STAT(multi_draw_calls, 1);
+    LTW_STAT(multi_draw_parts, drawcount > 0 ? drawcount : 0);
     if(current_context->drawelementsbasevertex != NULL) {
         for(GLsizei i = 0; i < drawcount; i++) {
             current_context->drawelementsbasevertex(mode, count[i], type, indices[i], basevertex[i]);

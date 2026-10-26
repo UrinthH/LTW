@@ -8,6 +8,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include "swizzle.h"
+#include "ltw_stats.h"
 void buffer_copier_init(context_t* context) {
     framebuffer_copier_t* copier = &context->framebuffer_copier;
     while(es3_functions.glGetError() != 0) {}
@@ -106,6 +107,7 @@ void glTexSubImage2D(GLenum target,
                      GLenum type,
                      const void * data) {
     if(!current_context) return;
+    LTW_STAT(tex_sub_uploads, 1);
     swizzle_process_upload(target, &format, &type);
     if(format == GL_DEPTH_COMPONENT) {
         framebuffer_copier_t* copier = &current_context->framebuffer_copier;

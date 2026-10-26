@@ -19,6 +19,7 @@
 #include "swizzle.h"
 #include "libraryinternal.h"
 #include "env.h"
+#include "ltw_stats.h"
 
 static unsigned int gl_major = 3;
 static unsigned int gl_minor = 3;
@@ -182,6 +183,7 @@ void glTexImage2D(GLenum target, GLint level, GLint internalformat, GLsizei widt
         current_context->proxy_height = ((height<<level)>current_context->maxTextureSize)?0:height;
         current_context->proxy_intformat = internalformat;
     } else {
+        LTW_STAT(tex_uploads, 1);
         if(data != NULL) swizzle_process_upload(target, &format, &type);
         pick_internalformat(&internalformat, &type, &format, &data);
         es3_functions.glTexImage2D(target, level, internalformat, width, height, border, format, type, data);
@@ -417,8 +419,15 @@ void glBindBuffer(GLenum buffer, GLuint name) {
     if(!current_context) return;
     es3_functions.glBindBuffer(buffer, name);
     int buffer_index = get_buffer_index(buffer);
-    if(buffer_index == -1) return;
+    LTW_STAT(buffer_binds, 1);
+    if(buffer_index == -1) {
+        ltw_stats_poll();
+        return;
+    }
+    // Counting only: how often the game binds the buffer that is already bound.
+    if(current_context->bound_buffers[buffer_index] == name) LTW_STAT(buffer_binds_same, 1);
     current_context->bound_buffers[buffer_index] = name;
+    ltw_stats_poll();
 }
 
 static basebuffer_binding_t* set_basebuffer(GLenum target, GLuint index, GLuint buffer) {
@@ -464,7 +473,11 @@ void glUseProgram(GLuint program) {
     // selected. Telling the driver again costs time and changes nothing.
     // current_context->program is cleared whenever the program is relinked or deleted, so a
     // use that failed earlier (for example before linking) can never make a later one get skipped.
-    if(current_context->program == program) return;
+    LTW_STAT(program_uses, 1);
+    if(current_context->program == program) {
+        LTW_STAT(program_uses_skipped, 1);
+        return;
+    }
     es3_functions.glUseProgram(program);
     current_context->program = program;
 }

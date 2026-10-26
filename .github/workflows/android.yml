@@ -24,6 +24,10 @@ jobs:
           ltw/src/test/native/shader_cache_test.c ltw/src/main/tinywrapper/shader_cache.c \
           -lpthread -o /tmp/shader_cache_test
         /tmp/shader_cache_test
+        gcc -Wall -Wextra -fsanitize=address,undefined -g -I ltw/src/main/tinywrapper \
+          ltw/src/test/native/ltw_stats_test.c ltw/src/main/tinywrapper/ltw_stats.c \
+          -lpthread -o /tmp/ltw_stats_test
+        /tmp/ltw_stats_test
     - name: Build with Gradle
       run: ./gradlew :ltw:assembleRelease
     - name: Upload AAR

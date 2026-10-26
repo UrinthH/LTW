@@ -7,10 +7,13 @@
 #include <proc.h>
 #include <egl.h>
 #include "basevertex.h"
+#include "ltw_stats.h"
 void glMultiDrawArrays( GLenum mode, GLint *first, GLsizei *count, GLsizei primcount )
 {
     // We'd need to merge each buffer attached to the VBO to properly achieve this. Nuh-uh. Aint no way im doin allat
     if(!current_context) return;
+    LTW_STAT(multi_draw_calls, 1);
+    LTW_STAT(multi_draw_parts, primcount > 0 ? primcount : 0);
     for (int i = 0; i < primcount; i++) {
         if (count[i] > 0)
             es3_functions.glDrawArrays(mode, first[i], count[i]);
@@ -20,6 +23,8 @@ void glMultiDrawArrays( GLenum mode, GLint *first, GLsizei *count, GLsizei primc
 void glMultiDrawElements( GLenum mode, GLsizei *count, GLenum type, const void * const *indices, GLsizei primcount )
 {
     if(!current_context) return;
+    LTW_STAT(multi_draw_calls, 1);
+    LTW_STAT(multi_draw_parts, primcount > 0 ? primcount : 0);
     GLint elementbuffer;
     es3_functions.glGetIntegerv(GL_ELEMENT_ARRAY_BUFFER_BINDING, &elementbuffer);
     es3_functions.glBindBuffer(GL_COPY_WRITE_BUFFER, current_context->multidraw_element_buffer);
