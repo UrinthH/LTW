@@ -14,6 +14,7 @@
 #include "egl.h"
 #include "proc.h"
 #include "shader_cache.h"
+#include "shader_dump.h"
 #include <time.h>
 
 typedef struct {
@@ -212,6 +213,11 @@ void glShaderSource(GLuint shader, GLsizei count, const GLchar *const*string, co
     }
     target_string[target_length] = 0;
 #undef SRC_LEN
+
+    // Copies the game's original text to a file for reading, when LTW_SHADER_DUMP_FILE is set.
+    ltw_shader_dump(shader_info->shader_type == GL_VERTEX_SHADER ? "vertex"
+                    : shader_info->shader_type == GL_FRAGMENT_SHADER ? "fragment" : "other",
+                    target_string, target_length);
 
     // Translating a shader is slow, and the same shaders come back on every resource reload and
     // every launch, so remember the results.
