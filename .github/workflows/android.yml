@@ -32,6 +32,10 @@ jobs:
           ltw/src/test/native/shader_dump_test.c ltw/src/main/tinywrapper/shader_dump.c \
           -lpthread -o /tmp/shader_dump_test
         /tmp/shader_dump_test
+        gcc -Wall -Wextra -fsanitize=address,undefined -g -I ltw/src/main/tinywrapper \
+          ltw/src/test/native/frame_pacing_test.c ltw/src/main/tinywrapper/frame_pacing.c \
+          -o /tmp/frame_pacing_test
+        /tmp/frame_pacing_test
     - name: Build with Gradle
       run: ./gradlew :ltw:assembleRelease
     - name: Upload AAR

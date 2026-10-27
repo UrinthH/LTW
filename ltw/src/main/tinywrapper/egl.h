@@ -97,4 +97,7 @@ extern thread_local context_t *current_context;
 extern void init_egl();
 extern GLenum get_textarget_query_param(GLenum target);
 
+/* eglSwapInterval as handed to the game's window library (see frame_pacing.h). */
+EGLBoolean ltw_eglSwapInterval(EGLDisplay dpy, EGLint interval);
+
 #endif //POJAVLAUNCHER_EGL_H

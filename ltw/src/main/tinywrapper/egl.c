@@ -7,6 +7,8 @@
 #include "unordered_map/int_hash.h"
 #include "string_utils.h"
 #include "env.h"
+#include "libraryinternal.h"
+#include "frame_pacing.h"
 #include <string.h>
 
 thread_local context_t *current_context;
@@ -15,6 +17,7 @@ unordered_map* context_map;
 EGLContext (*host_eglCreateContext)(EGLDisplay dpy, EGLConfig config, EGLContext share_context, const EGLint *attrib_list);
 EGLBoolean (*host_eglDestroyContext)(EGLDisplay dpy, EGLContext ctx);
 EGLBoolean (*host_eglMakeCurrent) (EGLDisplay dpy, EGLSurface draw, EGLSurface read, EGLContext ctx);
+static EGLBoolean (*host_eglSwapInterval)(EGLDisplay dpy, EGLint interval);
 
 void init_egl() {
     context_map = alloc_intmap();
@@ -24,6 +27,7 @@ void init_egl() {
             "eglDestroyContext");
     host_eglMakeCurrent = (EGLBoolean (*)(EGLDisplay, EGLSurface, EGLSurface,
                                           EGLContext)) host_eglGetProcAddress("eglMakeCurrent");
+    host_eglSwapInterval = (EGLBoolean (*)(EGLDisplay, EGLint)) host_eglGetProcAddress("eglSwapInterval");
 }
 
 static bool init_context(context_t* tw_context) {
@@ -274,4 +278,21 @@ EGLBoolean eglMakeCurrent (EGLDisplay dpy, EGLSurface draw, EGLSurface read, EGL
     }
     current_context = tw_context;
     return EGL_TRUE;
+}
+
+/**
+ * eglSwapInterval, handed to the game's window library in place of the system's. Passes the
+ * request on unchanged unless the launcher asked for a forced interval (LTW_FORCE_SWAP_INTERVAL),
+ * see frame_pacing.h. Not exported under its own name: it is only reachable through
+ * eglGetProcAddress.
+ */
+EGLBoolean ltw_eglSwapInterval(EGLDisplay dpy, EGLint interval) {
+    if (host_eglSwapInterval == NULL) return EGL_FALSE;
+    static bool said;
+    int effective = ltw_effective_swap_interval(interval);
+    if (effective != interval && !said) {
+        said = true;
+        printf("LTW: swap interval %d requested by the game, using %d (frame pacing override)\n", interval, effective);
+    }
+    return host_eglSwapInterval(dpy, effective);
 }
