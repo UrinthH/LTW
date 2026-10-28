@@ -70,6 +70,7 @@ eglMustCastToProperFunctionPointerType eglGetProcAddress(const char *procname) {
         if(!strcmp("eglDestroyContext", procname)) return (eglMustCastToProperFunctionPointerType) eglDestroyContext;
         if(!strcmp("eglMakeCurrent", procname)) return (eglMustCastToProperFunctionPointerType) eglMakeCurrent;
         if(!strcmp("eglSwapInterval", procname)) return (eglMustCastToProperFunctionPointerType) ltw_eglSwapInterval;
+        if(!strcmp("eglSwapBuffers", procname)) return (eglMustCastToProperFunctionPointerType) ltw_eglSwapBuffers;
     }
     // If the function doesn't start with "gl", don't even bother, pass through immediately.
     if(strncmp(procname, "gl", 2) != 0) goto fallback;

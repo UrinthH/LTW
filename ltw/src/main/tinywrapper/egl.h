@@ -99,5 +99,7 @@ extern GLenum get_textarget_query_param(GLenum target);
 
 /* eglSwapInterval as handed to the game's window library (see frame_pacing.h). */
 EGLBoolean ltw_eglSwapInterval(EGLDisplay dpy, EGLint interval);
+/* eglSwapBuffers with the frame cap applied (see frame_pacing.h). */
+EGLBoolean ltw_eglSwapBuffers(EGLDisplay dpy, EGLSurface surface);
 
 #endif //POJAVLAUNCHER_EGL_H

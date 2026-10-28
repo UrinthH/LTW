@@ -18,6 +18,7 @@ EGLContext (*host_eglCreateContext)(EGLDisplay dpy, EGLConfig config, EGLContext
 EGLBoolean (*host_eglDestroyContext)(EGLDisplay dpy, EGLContext ctx);
 EGLBoolean (*host_eglMakeCurrent) (EGLDisplay dpy, EGLSurface draw, EGLSurface read, EGLContext ctx);
 static EGLBoolean (*host_eglSwapInterval)(EGLDisplay dpy, EGLint interval);
+static EGLBoolean (*host_eglSwapBuffers)(EGLDisplay dpy, EGLSurface surface);
 
 void init_egl() {
     context_map = alloc_intmap();
@@ -28,6 +29,7 @@ void init_egl() {
     host_eglMakeCurrent = (EGLBoolean (*)(EGLDisplay, EGLSurface, EGLSurface,
                                           EGLContext)) host_eglGetProcAddress("eglMakeCurrent");
     host_eglSwapInterval = (EGLBoolean (*)(EGLDisplay, EGLint)) host_eglGetProcAddress("eglSwapInterval");
+    host_eglSwapBuffers = (EGLBoolean (*)(EGLDisplay, EGLSurface)) host_eglGetProcAddress("eglSwapBuffers");
 }
 
 static bool init_context(context_t* tw_context) {
@@ -295,4 +297,16 @@ EGLBoolean ltw_eglSwapInterval(EGLDisplay dpy, EGLint interval) {
         printf("LTW: swap interval %d requested by the game, using %d (frame pacing override)\n", interval, effective);
     }
     return host_eglSwapInterval(dpy, effective);
+}
+
+/**
+ * eglSwapBuffers, handed to the game's window library in place of the system's. Swaps as usual,
+ * then keeps to the frame cap the launcher asked for, if any (see frame_pacing.h). With no cap
+ * file this adds one clock read per frame.
+ */
+EGLBoolean ltw_eglSwapBuffers(EGLDisplay dpy, EGLSurface surface) {
+    if (host_eglSwapBuffers == NULL) return EGL_FALSE;
+    EGLBoolean result = host_eglSwapBuffers(dpy, surface);
+    ltw_frame_cap_after_swap();
+    return result;
 }
